@@ -107,25 +107,46 @@ export class Scanner {
     }
 
     error(start_next, end_next, msg){
-        // console.error(msg)
-        // let left_line_wrap_pos = 0
-        // for(let i=0; i<this.input_str.length; ++i)
-        // {
-        //     if(i > start_next) break;
-        //     if(this.input_str[i] == '\n') left_line_wrap_pos = i
-        // }
-        // let right_line_wrap_pos = this.input_str.length
-        // for(let i=this.input_str.length; i>=left_line_wrap_pos; --i)
-        // {
-        //     if(i < end_next) break;
-        //     if(this.input_str[i] == '\n') right_line_wrap_pos = i
-        // }
-        // console.error(this.input_str.substring(left_line_wrap_pos, right_line_wrap_pos))
-        // let tip = ""
-        // for(let i=0; i<start_next-left_line_wrap_pos; ++i) tip += ' '
-        // for(let i=0; i<end_next-start_next; ++i) tip += '~'
-        // tip += '^'
-        // console.error(tip)
+        let res = this.calc_line_column(start_next, end_next)
+        let line = res[0]
+        let column = res[1]
+        let left_line_wrap_pos = res[2]
+        let right_line_wrap_pos = res[3]
+        
+        let tip = ""
+        for(let i=0; i<start_next-left_line_wrap_pos-1; ++i) tip += ' '
+        for(let i=0; i<end_next-start_next; ++i) tip += '~'
+        tip += '^'
+
+        let error_msg = msg + " at line " + line + ", column " + column
+        error_msg += '\n' + this.input_str.substring(left_line_wrap_pos+1, right_line_wrap_pos)
+        error_msg += '\n' + tip
+        console.error(error_msg)
+    }
+
+    calc_line_column(start_next, end_next){
+        if(end_next === undefined) end_next = start_next
+
+        let left_line_wrap_pos = -1
+        let line = 1
+        for(let i=0; i<this.input_str.length; ++i)
+        {
+            if(i > start_next) break;
+            if(this.input_str[i] == '\n'){
+                left_line_wrap_pos = i
+                line += 1
+            }
+        }
+        let right_line_wrap_pos = this.input_str.length
+        for(let i=this.input_str.length; i>=left_line_wrap_pos; --i)
+        {
+            if(i < end_next) break;
+            if(this.input_str[i] == '\n') right_line_wrap_pos = i
+        }
+
+        let column = start_next - left_line_wrap_pos - 1
+
+        return [line, column, left_line_wrap_pos, right_line_wrap_pos]
     }
 
     is_eof(){
@@ -162,12 +183,12 @@ export class Scanner {
 
         if(end_state === -1)
         {
-            this.error(start_next, start_next, "无法识别字符: '" + this.input_str[start_next] + "' at " + (start_next))
+            this.error(start_next, start_next, "无法识别字符: '" + this.input_str[start_next] + "'")
             this.move_on(); //跳过
             return new Token(TokenType.ERR, this.input_str[start_next], 0, null)
         }else if(end_state === -2)
         {
-            this.error(start_next, start_next, "非法字符: '" + this.input_str[start_next] + "' at " + (start_next))
+            this.error(start_next, start_next, "非法字符: '" + this.input_str[start_next] + "'")
             this.move_on(); //跳过
             return new Token(TokenType.ERR, this.input_str[start_next], 0, null)
         }
@@ -190,9 +211,10 @@ export class Scanner {
         let token = TOKEN_TABLE[raw_value.toUpperCase()]
         if(token === undefined)
         {
-            this.error(start_next, end_next-1, "未定义标识: " + raw_value)
-            token = new Token(TokenType.ERR, raw_value, 0, null)
+            this.error(start_next, end_next-1, "未定义标识: '" + raw_value + "'")
+            token = new Token(TokenType.CONST, raw_value, 0, null)
         }
+        token.raw_value = raw_value
 
         if(token.type === TokenType.COMMENT){
             token.value = this.input_str.substring(start_next+2, this.next)
@@ -222,7 +244,7 @@ export class ScannerTest extends RaiixTest {
                 console.log(is_digit('1'))
             },
             test_get_token(){
-                let input = "asd we wq/e / o 12.32 //this is a comment * 0 - 1 + 3\n a6 * - 34 -- ** a23 3a\npi e"
+                let input = "asd we wq/e / o 中文12.32 //中文this is a comment * 0 - 1 + 3\n a6 * - 34 -- ** a23 3a\npi e"
                 console.log("语句: \n", input)
                 let s = new Scanner(input)
                 let token
