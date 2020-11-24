@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>函数绘图语言解释器</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+
+    <div id="main-container">
+        <textarea id="code-container" contenteditable="true"></textarea>
+
+        <div id="button-container">
+            <button id="eval-button" class="vertical-center"> 执行 </button>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="canvas" width="5" height="5" ></canvas>
+        </div>
+    </div>
+    
+    
+    
+
+    <script type="module">
+        import App from "./App.js"
+        var canvas = document.getElementById("canvas");
+        var app = new App(canvas.getContext("2d"))
+
+        window.onload = function(){  
+            var btn = document.getElementById("eval-button"); 
+            app.start()
+            btn.onclick =function(){  
+                app.eval()
+            }  
+        }
+    </script>
+</body>
+</html>
