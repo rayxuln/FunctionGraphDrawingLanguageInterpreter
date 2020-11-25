@@ -14,17 +14,21 @@ function make_transition_condition(cond_char)
     }
 }
 
-const LETTER = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const DIGIT = "0123456789"
+const LETTER_a = "a".charCodeAt(0)
+const LETTER_z = "z".charCodeAt(0)
+const LETTER_A = "A".charCodeAt(0)
+const LETTER_Z = "Z".charCodeAt(0)
+const DIGIT_0 = "0".charCodeAt(0)
+const DIGIT_9 = "9".charCodeAt(0)
 
 function is_letter(char){
-    // return /[a-zA-Z]/.test(char)
-    return LETTER.indexOf(char) >= 0
+    char = char.charCodeAt(0)
+    return (char >= LETTER_a && char <= LETTER_z) || (char >= LETTER_A && char <= LETTER_Z) || char > 127
 }
 
 function is_digit(char){
-    // return /[0-9]/.test(char)
-    return DIGIT.indexOf(char) >= 0
+    char = char.charCodeAt(0)
+    return char >= DIGIT_0 && char <= DIGIT_9
 }
 
 const TRANSITION_TABLE = [
@@ -112,6 +116,11 @@ export class Scanner {
         this.verbose = verbose
     }
 
+    is_wide_char(pos)
+    {
+        return this.input_str.charCodeAt(pos) > 127
+    }
+
     error(start_next, end_next, msg){
         if(!this.verbose) return
         let res = this.calc_line_column(start_next, end_next)
@@ -121,9 +130,9 @@ export class Scanner {
         let right_line_wrap_pos = res[3]
         
         let tip = ""
-        for(let i=0; i<start_next-left_line_wrap_pos-1; ++i) tip += ' '
-        for(let i=0; i<end_next-start_next; ++i) tip += '~'
-        tip += '^'
+        for(let i=0; i<start_next-left_line_wrap_pos-1; ++i) tip += ' ' + (this.is_wide_char(left_line_wrap_pos+1+i) ? ' ' : '')
+        for(let i=0; i<end_next-start_next; ++i) tip += '~' + (this.is_wide_char(start_next+1+i) ? '~' : '')
+        tip += (this.is_wide_char(end_next-1) ? '~' : '') + '^'
 
         let error_msg = msg + " at line " + line + ", column " + column
         error_msg += '\n' + this.input_str.substring(left_line_wrap_pos+1, right_line_wrap_pos)
@@ -164,16 +173,16 @@ export class Scanner {
         return this.input_str[this.next] 
     }
 
-    move_on(){
+    advance(){
         return this.next += 1
     }
 
     escape_blank(){
-        while(!this.is_eof() && BLANK_WORD.indexOf(this.next_char()) !== -1) this.move_on();
+        while(!this.is_eof() && BLANK_WORD.indexOf(this.next_char()) !== -1) this.advance();
     }
 
     escape_to_line_wrap(){
-        while(!this.is_eof() && LINE_WRAP.indexOf(this.next_char()) === -1) this.move_on();
+        while(!this.is_eof() && LINE_WRAP.indexOf(this.next_char()) === -1) this.advance();
     }
 
     process_dfa_res(start_state, start_next, dfa_res)
@@ -186,12 +195,12 @@ export class Scanner {
         if(end_state === -1)
         {
             this.error(start_next, start_next, "无法识别字符: '" + this.input_str[start_next] + "'")
-            this.move_on(); //跳过
+            this.advance(); //跳过
             return new Token(TokenType.ERR, this.input_str[start_next], 0, null)
         }else if(end_state === -2)
         {
             this.error(start_next, start_next, "非法字符: '" + this.input_str[start_next] + "'")
-            this.move_on(); //跳过
+            this.advance(); //跳过
             return new Token(TokenType.ERR, this.input_str[start_next], 0, null)
         }
         this.next = end_next
@@ -251,11 +260,34 @@ export class ScannerTest extends RaiixTest {
                 f = make_transition_condition('abcdefg')
                 console.log(f('a'))
                 console.log(f('k'))
-                
-                console.log(is_letter('a'))
-                console.log(is_letter('1'))
-                console.log(is_digit('a'))
-                console.log(is_digit('1'))
+            },
+            test_letter(){
+                that.assert_equal(is_letter('a'), true)
+                that.assert_equal(is_letter('b'), true)
+                that.assert_equal(is_letter('c'), true)
+                that.assert_equal(is_letter('d'), true)
+                that.assert_equal(is_letter('A'), true)
+                that.assert_equal(is_letter('B'), true)
+                that.assert_equal(is_letter('C'), true)
+                that.assert_equal(is_letter('e'), true)
+                that.assert_equal(is_letter('Z'), true)
+                that.assert_equal(is_letter('z'), true)
+
+                that.assert_equal(is_letter('1'), false)
+                that.assert_equal(is_letter('3'), false)
+                that.assert_equal(is_letter('-'), false)
+
+                that.assert_equal(is_letter('中'), true)
+            },
+            test_digit(){
+                that.assert_equal(is_digit('0'), true)
+                that.assert_equal(is_digit('1'), true)
+                that.assert_equal(is_digit('5'), true)
+                that.assert_equal(is_digit('9'), true)
+
+                that.assert_equal(is_digit('A'), false)
+                that.assert_equal(is_digit('B'), false)
+                that.assert_equal(is_digit('C'), false)
             },
             _test_get_token(){
                 let input = "asd we wq/e / o 中文12.32 //中文this is a comment * 0 - 1 + 3\n a6 * - 34 -- ** a23 3a\npi e"
