@@ -14,12 +14,17 @@ function make_transition_condition(cond_char)
     }
 }
 
+const LETTER = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const DIGIT = "0123456789"
+
 function is_letter(char){
-    return /[a-zA-Z]/.test(char)
+    // return /[a-zA-Z]/.test(char)
+    return LETTER.indexOf(char) >= 0
 }
 
 function is_digit(char){
-    return /[0-9]/.test(char)
+    // return /[0-9]/.test(char)
+    return DIGIT.indexOf(char) >= 0
 }
 
 const TRANSITION_TABLE = [
@@ -100,13 +105,15 @@ let TOKEN_TABLE = {
 
 
 export class Scanner {
-    constructor(input_str){
+    constructor(input_str, verbose=true){
         this.input_str = input_str
         this.next = 0 //向前看一个字符
         this.max_next = input_str.length
+        this.verbose = verbose
     }
 
     error(start_next, end_next, msg){
+        if(!this.verbose) return
         let res = this.calc_line_column(start_next, end_next)
         let line = res[0]
         let column = res[1]
