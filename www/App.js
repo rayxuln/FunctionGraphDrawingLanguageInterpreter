@@ -1,11 +1,10 @@
 import { ScannerTest } from "./lib/Scanner.js"
+import { Vector } from "./lib/Vector.js"
 
 export default class {
     constructor(context){
         this.context = context;
-        
-        // 创建一张可以自定义像素的图片
-        this.image_data = context.createImageData(context.canvas.width, context.canvas.height);
+        this.image_data = null;
     }
 
     // 清屏
@@ -33,9 +32,16 @@ export default class {
 
     }
 
-    async start(){
-        await (new ScannerTest()).run()
+    // 创建一张可以自定义像素的图片
+    retain_image_data()
+    {
+        this.image_data = this.context.createImageData(this.context.canvas.width, this.context.canvas.height);
+    }
 
+    async init(){
+        //await (new ScannerTest()).run()
+
+        this.retain_image_data();
         this.eval();
     }
 
@@ -43,11 +49,12 @@ export default class {
         // 清屏
         this.context.fillStyle = '#aaaaaa';
         this.context.fillRect(0, 0, this.context.canvas.width, this.context.canvas.height);
-        // this.clear_image_data(this.image_data, Vector.RED())
+        this.clear_image_data(this.image_data, new Vector(0.9, 0.9, 0.9, 1))
 
         // 逐个渲染像素
 
         // 写入画布数据
-        this.context.putImageData(this.image_data, 0, 0)
+        if(this.image_data)
+            this.context.putImageData(this.image_data, 0, 0)
     }
 }
