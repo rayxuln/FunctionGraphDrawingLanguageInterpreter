@@ -17,9 +17,15 @@ export class Token {
         this.raw_value = raw_value
         this.value = value
         this.func = func
+
+        if(func != null) this.value = func
     }
 
     to_string(){
-        return "<" + TokenType.to_string(this.type) + ", " + this.raw_value + ", " + this.value + ">"
+        return "<" + TokenType.to_string(this.type) + ", '" + this.raw_value + "', " + this.value + ">"
+    }
+
+    eof(){
+        return this.type === TokenType.EOF
     }
 }

@@ -1,0 +1,5 @@
+ORIGIN (150, 200*4**2) 
+SCALE (1, 1+1) 
+For T fRom 0 step 0.1 tO 100 DRAW (T, sin(T))
+For T fRom 100 step 0.2 tO 200 DRAW 
+For T fRom 200 step 0.3 tO 400 DRAW 

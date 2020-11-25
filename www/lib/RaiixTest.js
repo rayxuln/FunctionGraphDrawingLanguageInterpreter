@@ -1,26 +1,34 @@
 export class RaiixTest {
     constructor(test_name){
         var that = this
-        this.cases = {
-        }
+        this.cases = {}
         this.test_name = test_name
         this.enable = true
     }
 
-    run(){
+    fetch_file_text(url){
+        return fetch(url).then(res => res.text())
+    }
+
+    async run(){
         if(!this.enable) return
         let total_num = Object.keys(this.cases).length
         let cnt = 1
         for(let func in this.cases)
         {
-            console.log(">["+ cnt++ +"/"+total_num+"]==== Test " + this.test_name + " For " + func + " ====")
-            try{
-                this.cases[func]()
-            }catch(err){
-                console.log(err)
-                continue
+            if(func[0] !== '_')
+            {
+                console.log(">["+ cnt++ +"/"+total_num+"]==== Test " + this.test_name + " For " + func + " ====")
+                try{
+                    let f = await this.cases[func]()
+                }catch(err){
+                    console.log(err)
+                    continue
+                }
+                console.log("Passed!")
+            }else{
+                console.log(">["+ cnt++ +"/"+total_num+"]==== Skip " + func + " ====")
             }
-            console.log("Passed!")
         }
     }
 

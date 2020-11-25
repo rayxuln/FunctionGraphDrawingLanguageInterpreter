@@ -169,17 +169,12 @@ export class Scanner {
         while(!this.is_eof() && LINE_WRAP.indexOf(this.next_char()) === -1) this.move_on();
     }
 
-    get_token() {
-        if(this.is_eof()) return new Token(TokenType.EOF, "", 0, null);//扫描完毕
-        this.escape_blank();//跳过空白字符
-        
-
-        let dfa = new DFA(0, TRANSITION_TABLE, FINAL_STATES)
-        let start_next = this.next
-        let dfa_res = dfa.run(start_next, this.input_str)
+    process_dfa_res(start_state, start_next, dfa_res)
+    {
         let end_state = dfa_res[0]
         let end_next = dfa_res[1]
 
+        if(end_state === start_state) return new Token(TokenType.EOF, "", 0, null);//扫描完毕
 
         if(end_state === -1)
         {
@@ -208,6 +203,7 @@ export class Scanner {
             return new Token(TokenType.CONST, raw_value, Number.parseFloat(raw_value), null)
         }
 
+        //根据识别到的标识符获取token（包括操作符）
         let token = TOKEN_TABLE[raw_value.toUpperCase()]
         if(token === undefined)
         {
@@ -216,11 +212,22 @@ export class Scanner {
         }
         token.raw_value = raw_value
 
+        //截取注释作为token的值
         if(token.type === TokenType.COMMENT){
             token.value = this.input_str.substring(start_next+2, this.next)
         }
 
         return token
+    }
+
+    get_token() {
+        this.escape_blank();//跳过空白字符
+        
+        let dfa = new DFA(0, TRANSITION_TABLE, FINAL_STATES)
+        let start_next = this.next
+        let dfa_res = dfa.run(start_next, this.input_str)
+        
+        return this.process_dfa_res(0, start_next, dfa_res)
     }
 }
 
@@ -230,7 +237,7 @@ export class ScannerTest extends RaiixTest {
         var that = this
         this.enable = true
         this.cases = {
-            test_basic_functions(){
+            _test_basic_functions(){
                 let f = make_transition_condition('x')
                 console.log(f('x'))
                 console.log(f('y'))
@@ -243,7 +250,7 @@ export class ScannerTest extends RaiixTest {
                 console.log(is_digit('a'))
                 console.log(is_digit('1'))
             },
-            test_get_token(){
+            _test_get_token(){
                 let input = "asd we wq/e / o 中文12.32 //中文this is a comment * 0 - 1 + 3\n a6 * - 34 -- ** a23 3a\npi e"
                 console.log("语句: \n", input)
                 let s = new Scanner(input)
@@ -253,9 +260,27 @@ export class ScannerTest extends RaiixTest {
                     token = s.get_token()
                     console.log(token.to_string())
                     cnt += 1
-                }while(token !== 0 && cnt <= 100)
-            }
-
+                }while(token.type !== TokenType.EOF && cnt <= 100)
+            },
+            async test_valid_file(){
+                await that.test_file("/test/scanner_test/valid.txt")
+            },
+            async test_invalid_file(){
+                await that.test_file("/test/scanner_test/invalid.txt")
+            },
+            async test_valid_with_invalid_file(){
+                await that.test_file("/test/scanner_test/valid_with_invalid.txt")
+            },
         }
+    }
+
+    async test_file(url){
+        let input = await this.fetch_file_text(url)
+        let s = new Scanner(input)
+        let token
+        do{
+            token = s.get_token()
+            console.log(token.to_string())
+        }while(!token.eof())
     }
 }

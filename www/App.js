@@ -33,8 +33,8 @@ export default class {
 
     }
 
-    start(){
-        (new ScannerTest()).run()
+    async start(){
+        await (new ScannerTest()).run()
 
         this.eval();
     }
