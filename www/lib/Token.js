@@ -1,7 +1,7 @@
 import { RaiixEnumType } from "./RaiixEnumType.js"
 
 export var TokenType = RaiixEnumType(
-    "CONST", "T", "FUNC",
+    "CONST", "VAR", "FUNC",
     "ORIGIN", "SCALE", "ROT", "IS", "TO", "STEP", "DRAW", "FOR", "FROM",
     "PLUS", "MINUS", "MUL", "DIV", "POW",
     "SEMICO", "L_BRANCKET", "R_BRANCKET", "COMMA",
@@ -17,6 +17,10 @@ export class Token {
         this.raw_value = raw_value
         this.value = value
         this.func = func
+
+        //用于输出错误信息
+        this.start_next = 0
+        this.end_next = 0
 
         if(func != null) this.value = func
     }

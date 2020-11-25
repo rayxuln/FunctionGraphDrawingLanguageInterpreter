@@ -75,13 +75,14 @@ const BLANK_WORD = " \n\r\t\b"
 let TOKEN_TABLE = {
     "PI": new Token(TokenType.CONST, "PI", Math.PI, null),
     "E": new Token(TokenType.CONST, "E", Math.E, null),
-    "T": new Token(TokenType.T, "T", 0, null),
-    "SIN": new Token(TokenType.FUNC, "SIN", 0, Math.sin),
-    "COS": new Token(TokenType.FUNC, "COS", 0, Math.cos),
-    "TAN": new Token(TokenType.FUNC, "TAN", 0, Math.tan),
-    "LN": new Token(TokenType.FUNC, "LN", 0, Math.log),
-    "EXP": new Token(TokenType.FUNC, "EXP", 0, Math.exp),
-    "SQRT": new Token(TokenType.FUNC, "SQRT", 0, Math.sqrt),
+
+    "SIN": new Token(TokenType.CONST, "SIN", 0, Math.sin),
+    "COS": new Token(TokenType.CONST, "COS", 0, Math.cos),
+    "TAN": new Token(TokenType.CONST, "TAN", 0, Math.tan),
+    "LN": new Token(TokenType.CONST, "LN", 0, Math.log),
+    "EXP": new Token(TokenType.CONST, "EXP", 0, Math.exp),
+    "SQRT": new Token(TokenType.CONST, "SQRT", 0, Math.sqrt),
+
     "ORIGIN": new Token(TokenType.ORIGIN, "ORIGIN", 0, null),
     "SCALE": new Token(TokenType.SCALE, "SCALE", 0, null),
     "ROT": new Token(TokenType.ROT, "ROT", 0, null),
@@ -92,11 +93,11 @@ let TOKEN_TABLE = {
     "STEP": new Token(TokenType.STEP, "STEP", 0, null),
     "DRAW": new Token(TokenType.DRAW, "DRAW", 0, null),
 
-    "+": new Token(TokenType.PLUS, "+", 0, null),
-    "-": new Token(TokenType.MINUS, "-", 0, null),
-    "*": new Token(TokenType.MUL, "*", 0, null),
-    "/": new Token(TokenType.DIV, "/", 0, null),
-    "**": new Token(TokenType.POW, "**", 0, null),
+    "+": new Token(TokenType.PLUS, "+", 0, (l, r)=>l+r),
+    "-": new Token(TokenType.MINUS, "-", 0, (l, r)=>l-r),
+    "*": new Token(TokenType.MUL, "*", 0, (l, r)=>l*r),
+    "/": new Token(TokenType.DIV, "/", 0, (l, r)=>l/r),
+    "**": new Token(TokenType.POW, "**", 0, (l, r)=>Math.pow(l, r)),
 
     "--": new Token(TokenType.COMMENT, "--", 0, null),
     "//": new Token(TokenType.COMMENT, "//", 0, null),
@@ -129,15 +130,23 @@ export class Scanner {
         let left_line_wrap_pos = res[2]
         let right_line_wrap_pos = res[3]
         
+        let error_msg = msg + " at line " + line + ", column " + column
+        error_msg += '\n' + this.calc_line_str(left_line_wrap_pos, right_line_wrap_pos)
+        error_msg += '\n' + this.calc_tip_str(start_next, end_next, left_line_wrap_pos)
+        console.error(error_msg)
+    }
+
+    calc_tip_str(start_next, end_next, left_line_wrap_pos){
         let tip = ""
         for(let i=0; i<start_next-left_line_wrap_pos-1; ++i) tip += ' ' + (this.is_wide_char(left_line_wrap_pos+1+i) ? ' ' : '')
         for(let i=0; i<end_next-start_next; ++i) tip += '~' + (this.is_wide_char(start_next+1+i) ? '~' : '')
         tip += (this.is_wide_char(end_next-1) ? '~' : '') + '^'
 
-        let error_msg = msg + " at line " + line + ", column " + column
-        error_msg += '\n' + this.input_str.substring(left_line_wrap_pos+1, right_line_wrap_pos)
-        error_msg += '\n' + tip
-        console.error(error_msg)
+        return tip
+    }
+
+    calc_line_str(left_line_wrap_pos, right_line_wrap_pos){
+        return this.input_str.substring(left_line_wrap_pos+1, right_line_wrap_pos)
     }
 
     calc_line_column(start_next, end_next){
@@ -190,18 +199,29 @@ export class Scanner {
         let end_state = dfa_res[0]
         let end_next = dfa_res[1]
 
-        if(end_state === start_state) return new Token(TokenType.EOF, "", 0, null);//扫描完毕
+        if(end_state === start_state){
+            let token = new Token(TokenType.EOF, "", 0, null);//扫描完毕
+            token.start_next = end_next
+            token.end_state = end_next
+            return token
+        }
 
         if(end_state === -1)
         {
             this.error(start_next, start_next, "无法识别字符: '" + this.input_str[start_next] + "'")
             this.advance(); //跳过
-            return new Token(TokenType.ERR, this.input_str[start_next], 0, null)
+            let token = new Token(TokenType.ERR, this.input_str[start_next], 0, null)
+            token.start_next = start_next
+            token.end_next = end_next
+            return token
         }else if(end_state === -2)
         {
             this.error(start_next, start_next, "非法字符: '" + this.input_str[start_next] + "'")
             this.advance(); //跳过
-            return new Token(TokenType.ERR, this.input_str[start_next], 0, null)
+            let token = new Token(TokenType.ERR, this.input_str[start_next], 0, null)
+            token.start_next = start_next
+            token.end_next = end_next
+            return token
         }
         this.next = end_next
 
@@ -216,17 +236,22 @@ export class Scanner {
         //数值字面量
         if(end_state === 2 || end_state === 3)
         {
-            return new Token(TokenType.CONST, raw_value, Number.parseFloat(raw_value), null)
+            let token = new Token(TokenType.CONST, raw_value, Number.parseFloat(raw_value), null)
+            token.start_next = start_next
+            token.end_next = end_next
+            return token
         }
 
         //根据识别到的标识符获取token（包括操作符）
         let token = TOKEN_TABLE[raw_value.toUpperCase()]
         if(token === undefined)
         {
-            this.error(start_next, end_next-1, "未定义标识: '" + raw_value + "'")
-            token = new Token(TokenType.CONST, raw_value, 0, null)
+            //this.error(start_next, end_next-1, "未定义标识: '" + raw_value + "'")
+            token = new Token(TokenType.VAR, raw_value, 0, null)
         }
         token.raw_value = raw_value
+        token.start_next = start_next
+        token.end_next = end_next
 
         //截取注释作为token的值
         if(token.type === TokenType.COMMENT){
@@ -301,7 +326,7 @@ export class ScannerTest extends RaiixTest {
                     cnt += 1
                 }while(token.type !== TokenType.EOF && cnt <= 100)
             },
-            async test_valid_file(){
+            async _test_valid_file(){
                 await that.test_file("/test/scanner_test/valid.txt")
             },
             async test_invalid_file(){
@@ -309,6 +334,9 @@ export class ScannerTest extends RaiixTest {
             },
             async test_valid_with_invalid_file(){
                 await that.test_file("/test/scanner_test/valid_with_invalid.txt")
+            },
+            async _test_parser_valid_file(){
+                await that.test_file("/test/parser_test/valid.txt")
             },
         }
     }
