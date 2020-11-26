@@ -249,7 +249,11 @@ export class Parser {
 
     advance(){
         let token = this.next_token
-        this.next_token = this.scanner.get_token()
+        this.next_token = this.scanner.get_token();
+
+        //跳过注释
+        while(this.is(TokenType.COMMENT))
+            this.next_token = this.scanner.get_token();
         return token
     }
 
@@ -259,10 +263,6 @@ export class Parser {
 
         try{
             while(!this.is(TokenType.EOF)){
-                //跳过注释
-                while(this.is(TokenType.COMMENT)) this.advance()
-                if(this.is(TokenType.EOF)) break;
-    
                 statements.push(this.statement())
                 this.match(TokenType.SEMICO)
             }
@@ -425,40 +425,38 @@ export class Parser {
 
     atom()
     {
+        let expr = null
         if(this.is(TokenType.CONST) || this.is(TokenType.VAR))
         {
             let token = this.advance()
-            let id = null
             if(token.type === TokenType.CONST)
-                id = new ConstExpression(token.value)
+                expr = new ConstExpression(token.value)
             if(token.type === TokenType.VAR)
-                id = new VarExpression(token.raw_value)
-            
-            if(this.is(TokenType.L_BRANCKET))
-            {
-                this.match(TokenType.L_BRANCKET)
-                let args = []
-                if(!this.is(TokenType.R_BRANCKET))
-                {
-                    args = this.args()
-                }
-                this.match(TokenType.R_BRANCKET)
-
-                id = new FuncExpression(id, ...args)
-            }
-
-            return id
+                expr = new VarExpression(token.raw_value)
+        }
+        else if(this.is(TokenType.L_BRANCKET))
+        {
+            this.match(TokenType.L_BRANCKET)
+            expr = this.expression()
+            this.match(TokenType.R_BRANCKET)
+        }
+        if(expr === null)
+        {
+            throw this.error(ParserErrorType.UNEXPECTED_TERM)
         }
         if(this.is(TokenType.L_BRANCKET))
         {
             this.match(TokenType.L_BRANCKET)
-            let expr = this.expression()
+            let args = []
+            if(!this.is(TokenType.R_BRANCKET))
+            {
+                args = this.args()
+            }
             this.match(TokenType.R_BRANCKET)
-            return expr
+
+            expr = new FuncExpression(expr, ...args)
         }
-        throw this.error(
-            ParserErrorType.UNEXPECTED_TERM
-            )
+        return expr
     }
 
     args(){
