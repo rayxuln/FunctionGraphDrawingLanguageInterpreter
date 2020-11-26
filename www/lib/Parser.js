@@ -38,13 +38,13 @@ class Program extends ASTNode {
     eval(context){
         //初始化
         context.symbol_table["T"] = 0
-        context.symbol_table["ORIGIN"] = Vector.ZERO2
+        context.symbol_table["ORIGIN"] = Vector.ZERO2()
         context.symbol_table["SCALE"] = new Vector(1, 1)
         context.symbol_table["ROT"] = 0
 
         //重置坐标变换
-        let ctx = context.canvas_context
-        ctx.resetTransform()
+        // let ctx = context.canvas_context
+        // ctx.resetTransform()
 
         for(let c of this.children)
         {
@@ -110,7 +110,7 @@ class ForStatement extends ASTNode {
     eval(context)
     {
         // t 是一个变量
-        let t = this.children[0]
+        let t = this.children[0].value
 
         // 其余的为常量
         let from = this.children[1].eval(context)
@@ -118,15 +118,19 @@ class ForStatement extends ASTNode {
         let step = this.children[3].eval(context)
 
         // 初始化T
-        context.symbol_table[t.value.toUpperCase()] = from
+        context.symbol_table[t] = from
 
         let ctx = context.canvas_context
+
         let origin = context.symbol_table["ORIGIN"]
         let scale = context.symbol_table["SCALE"]
         let rot = context.symbol_table["ROT"]
 
+        let width = ctx.canvas.width
+        let height = ctx.canvas.height
+
         // 循环
-        for(; t.eval(context) <= to; context.symbol_table[t.value.toUpperCase()]+=step)
+        for(; context.symbol_table[t] <= to; context.symbol_table[t]+=step)
         {
             // 计算点的坐标
             let x = this.children[4].eval(context)
@@ -141,9 +145,14 @@ class ForStatement extends ASTNode {
             x += origin.x
             y += origin.y
 
+            // 转换坐标系
+            x += 15
+            y += 15
+            y = height - y
+
             // 绘制点
             ctx.fillStyle = "#ee1111"
-            ctx.fillRect(x+20, y+20, 1, 1)
+            ctx.fillRect(x, y, 1, 1)
         }
 
 
@@ -163,11 +172,11 @@ class ConstExpression extends ASTNode {
 
 class VarExpression extends ASTNode {
     constructor(value){
-        super(value)
+        super(value.toUpperCase())
     }
 
     eval(context) {
-        return context.symbol_table[this.value.toUpperCase()]
+        return context.symbol_table[this.value]
     }
 }
 
@@ -180,21 +189,12 @@ class FuncExpression extends ASTNode {
     eval(context){
         let func = this.children[0].eval(context)
 
-        // let log_info = "执行函数'"+this.children[0].value+"'<-("
-
         let args = []
         for(let i=1; i<this.children.length; ++i)
         {
             let res = this.children[i].eval(context)
             args.push(res)
-
-            // log_info += res 
-            // if(i < this.children.length-1)
-            //     log_info += ', '
         }
-
-        // log_info += ')'
-        // console.log(log_info)
 
         return func(...args)
     }
@@ -207,6 +207,7 @@ export class Parser {
         this.next_token = null
     }
 
+    //输出错误信息
     error(type, expected=""){
         let start_next = this.next_token.start_next
         let end_next = this.next_token.end_next
@@ -236,6 +237,7 @@ export class Parser {
         return this.next_token.type === type
     }
 
+    //匹配并向前推进
     match(type){
         if(this.is(type))
         {
@@ -247,6 +249,7 @@ export class Parser {
             )
     }
 
+    //向前推进
     advance(){
         let token = this.next_token
         this.next_token = this.scanner.get_token();
@@ -501,6 +504,8 @@ export class ParserTest extends RaiixTest {
     }
 
     test_input(input){
+        document.getElementById("code-container").value = input
+
         let s = new Scanner(input)
         let p = new Parser(s)
 

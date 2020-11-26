@@ -2,7 +2,7 @@ import { RaiixTest } from "./RaiixTest.js"
 import { DFA } from "./DFA.js"
 import { TokenType, Token } from "./Token.js"
 
-
+//用于生成条件判断函数
 function make_transition_condition(cond_char)
 {
     return function(char){
@@ -14,6 +14,7 @@ function make_transition_condition(cond_char)
     }
 }
 
+//获取字符的编码
 const LETTER_a = "a".charCodeAt(0)
 const LETTER_z = "z".charCodeAt(0)
 const LETTER_A = "A".charCodeAt(0)
@@ -21,16 +22,19 @@ const LETTER_Z = "Z".charCodeAt(0)
 const DIGIT_0 = "0".charCodeAt(0)
 const DIGIT_9 = "9".charCodeAt(0)
 
+//判断是否为字母（包括双字节字符以支持中文）
 function is_letter(char){
     char = char.charCodeAt(0)
     return (char >= LETTER_a && char <= LETTER_z) || (char >= LETTER_A && char <= LETTER_Z) || char > 127
 }
 
+//判断是否为数字
 function is_digit(char){
     char = char.charCodeAt(0)
     return char >= DIGIT_0 && char <= DIGIT_9
 }
 
+//DFA需要用到的状态转移表
 const TRANSITION_TABLE = [
     [//0
         {condition:is_letter, to_state:1},
@@ -64,14 +68,15 @@ const TRANSITION_TABLE = [
     ]
 ]
 
+//终态集合
 const FINAL_STATES = [1, 2, 3, 4, 5, 6, 7]
 
 const COMMENT_PREFIX = ['//', '--']
-
 const LINE_WRAP = "\n"
-
 const BLANK_WORD = " \n\r\t\b"
 
+//记号表
+//用于将识别到的字符串转换为对应的记号，并给常量记号赋值
 let TOKEN_TABLE = {
     "PI": new Token(TokenType.CONST, "PI", Math.PI, null),
     "E": new Token(TokenType.CONST, "E", Math.E, null),
@@ -117,11 +122,13 @@ export class Scanner {
         this.verbose = verbose
     }
 
+    //判断是否为多节字符
     is_wide_char(pos)
     {
         return this.input_str.charCodeAt(pos) > 127
     }
 
+    //输出错误信息
     error(start_next, end_next, msg){
         if(!this.verbose) return
         let res = this.calc_line_column(start_next, end_next)
@@ -182,6 +189,7 @@ export class Scanner {
         return this.input_str[this.next] 
     }
 
+    //向前推进一个字符
     advance(){
         return this.next += 1
     }
@@ -194,6 +202,7 @@ export class Scanner {
         while(!this.is_eof() && LINE_WRAP.indexOf(this.next_char()) === -1) this.advance();
     }
 
+    //处理dfa返回的结果，返回识别到的记号
     process_dfa_res(start_state, start_next, dfa_res)
     {
         let end_state = dfa_res[0]
@@ -206,7 +215,7 @@ export class Scanner {
             return token
         }
 
-        if(end_state === -1)
+        if(end_state === -1)//终态为-1为从当前字符开始无法完整识别
         {
             this.error(start_next, start_next, "无法识别字符: '" + this.input_str[start_next] + "'")
             this.advance(); //跳过
@@ -214,7 +223,7 @@ export class Scanner {
             token.start_next = start_next
             token.end_next = end_next
             return token
-        }else if(end_state === -2)
+        }else if(end_state === -2)//终态为-2为非法的字符
         {
             this.error(start_next, start_next, "非法字符: '" + this.input_str[start_next] + "'")
             this.advance(); //跳过
@@ -246,10 +255,11 @@ export class Scanner {
         let token = TOKEN_TABLE[raw_value.toUpperCase()]
         if(token === undefined)
         {
-            //this.error(start_next, end_next-1, "未定义标识: '" + raw_value + "'")
+            //变量标识符
             token = new Token(TokenType.VAR, raw_value, 0, null)
         }
         token.raw_value = raw_value
+        //用于错误输出
         token.start_next = start_next
         token.end_next = end_next
 
@@ -264,10 +274,13 @@ export class Scanner {
     get_token() {
         this.escape_blank();//跳过空白字符
         
+        //输入初态、状态转换表和终态集给DFA
+        //得到的结果为二元组 [终态， 识别到的字符结束位置]
         let dfa = new DFA(0, TRANSITION_TABLE, FINAL_STATES)
         let start_next = this.next
         let dfa_res = dfa.run(start_next, this.input_str)
         
+        //根据DFA的结果返回记号
         return this.process_dfa_res(0, start_next, dfa_res)
     }
 }
@@ -326,13 +339,13 @@ export class ScannerTest extends RaiixTest {
                     cnt += 1
                 }while(token.type !== TokenType.EOF && cnt <= 100)
             },
-            async _test_valid_file(){
+            async test_valid_file(){
                 await that.test_file("/test/scanner_test/valid.txt")
             },
-            async test_invalid_file(){
+            async _test_invalid_file(){
                 await that.test_file("/test/scanner_test/invalid.txt")
             },
-            async test_valid_with_invalid_file(){
+            async _test_valid_with_invalid_file(){
                 await that.test_file("/test/scanner_test/valid_with_invalid.txt")
             },
             async _test_parser_valid_file(){
@@ -343,6 +356,9 @@ export class ScannerTest extends RaiixTest {
 
     async test_file(url){
         let input = await this.fetch_file_text(url)
+
+        document.getElementById("code-container").value = input
+
         let s = new Scanner(input)
         let token
         do{

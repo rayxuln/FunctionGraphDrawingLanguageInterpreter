@@ -15,12 +15,12 @@ export default class {
     }
 
     async init(){
-        //await (new ScannerTest()).run()
+        await (new ScannerTest()).run()
         //await (new ParserTest()).run()
         //await (new InterpreterTest()).run()
 
         this.retain_image_data();
-        this.eval();
+        //this.eval();
     }
 
     eval(){

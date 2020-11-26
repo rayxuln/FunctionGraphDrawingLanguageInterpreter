@@ -1,7 +1,8 @@
 import { RaiixEnumType } from "./RaiixEnumType.js"
 
+//记号类型
 export var TokenType = RaiixEnumType(
-    "CONST", "VAR", "FUNC",
+    "CONST", "VAR",
     "ORIGIN", "SCALE", "ROT", "IS", "TO", "STEP", "DRAW", "FOR", "FROM",
     "PLUS", "MINUS", "MUL", "DIV", "POW",
     "SEMICO", "L_BRANCKET", "R_BRANCKET", "COMMA",
