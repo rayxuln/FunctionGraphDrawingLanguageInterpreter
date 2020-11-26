@@ -139,8 +139,11 @@ class ForStatement extends ASTNode {
             x *= scale.x
             y *= scale.y
 
-            x = x*Math.cos(rot) + y*Math.sin(rot)
-            y = y*Math.cos(rot) - x*Math.sin(rot)
+            let t_x = x*Math.cos(rot) + y*Math.sin(rot)
+            let t_y = y*Math.cos(rot) - x*Math.sin(rot)
+
+            x = t_x
+            y = t_y
 
             x += origin.x
             y += origin.y

@@ -17,6 +17,14 @@ for t from -100 to 100 step 1 draw (t, 0); -- 横坐标
 for t from -100 to 100 step 1 draw (0, t); -- 纵坐标
 scale is (200, 100);  -- 设置横、纵坐标比例
 for t from 0 to 2*pi step pi/50 draw (cos(t), sin(t));
+
+rot is pi*5/6;          -- 设置旋转角度
+scale is (2, 1);      -- 设置横、纵坐标比例
+for t from -100 to 100 step 1 draw (t, 0); -- 横坐标
+for t from -100 to 100 step 1 draw (0, t); -- 纵坐标
+scale is (200, 100);  -- 设置横、纵坐标比例
+for t from 0 to 2*pi step pi/50 draw (cos(t), sin(t));
+
 </textarea>
 
         <div id="button-container">
