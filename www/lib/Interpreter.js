@@ -3,17 +3,22 @@ import { Parser } from "./Parser.js"
 import { Vector } from "./Vector.js"
 import { RaiixTest } from "./RaiixTest.js"
 
-var symbol_table = {
-    'T': 0,
-    'ORIGIN': new Vector(0, 0),
-    'SCALE': new Vector(1, 1),
-    'ROT': 0,
-}
-
 export class Interpreter {
     constructor(canvas_context) {
+        var that = this
         this.context = {
-            symbol_table,
+            symbol_table: {
+                'T': 0,
+                'ORIGIN': new Vector(0, 0),
+                'SCALE': new Vector(1, 1),
+                'ROT': 0,
+                'GET_CENTER_X': function(){
+                    return canvas_context.canvas.width / 2
+                },
+                'GET_CENTER_Y': function() {
+                    return canvas_context.canvas.height / 2
+                }
+            },
             canvas_context
         }
     }

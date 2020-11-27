@@ -265,7 +265,7 @@ export class Parser {
 
     parse(){
         let statements = []
-        this.next_token = this.scanner.get_token()
+        this.advance()
 
         try{
             while(!this.is(TokenType.EOF)){

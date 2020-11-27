@@ -24,6 +24,7 @@ const DIGIT_9 = "9".charCodeAt(0)
 
 //判断是否为字母（包括双字节字符以支持中文）
 function is_letter(char){
+    if(char === '_') return true
     char = char.charCodeAt(0)
     return (char >= LETTER_a && char <= LETTER_z) || (char >= LETTER_A && char <= LETTER_Z) || char > 127
 }
